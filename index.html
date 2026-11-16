@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مطعم الفخامة - المنيو الإلكتروني السحابي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- استيراد مكتبات Firebase عبر CDN -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary-gold: #c5a059;
+            --light-gold: #dfbe7d;
+            --bg-dark: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --text-main: #f5f5f5;
+            --text-muted: #aaaaaa;
+            --border-color: #333333;
+            --whatsapp-green: #25d366;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+            padding-bottom: 110px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            border-bottom: 2px solid var(--primary-gold);
+            background: linear-gradient(to bottom, #161616, #0f0f0f);
+            position: relative;
+        }
+
+        header h1 {
+            color: var(--primary-gold);
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+
+        .admin-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(197, 160, 89, 0.1);
+            color: var(--primary-gold);
+            border: 1px solid var(--primary-gold);
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .admin-btn:hover {
+            background: var(--primary-gold);
+            color: #000;
+        }
+
+        .menu-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .category-title {
+            color: var(--primary-gold);
+            font-size: 2rem;
+            margin: 40px 0 25px;
+            border-right: 5px solid var(--primary-gold);
+            padding-right: 15px;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .menu-item {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            transition: all 0.4s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-gold);
+            box-shadow: 0 10px 25px rgba(197, 160, 89, 0.2);
+        }
+
+        .item-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-bottom: 2px solid var(--primary-gold);
+        }
+
+        .item-content {
+            padding: 20px;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .item-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .item-price-container {
+            color: var(--light-gold);
+            font-size: 1.15rem;
+            font-weight: bold;
+            background: rgba(197, 160, 89, 0.1);
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(197, 160, 89, 0.3);
+        }
+
+        .price-input {
+            background: #222;
+            color: var(--light-gold);
+            border: 1px solid var(--primary-gold);
+            padding: 4px 8px;
+            font-size: 1rem;
+            border-radius: 6px;
+            width: 75px;
+            text-align: center;
+            font-family: 'Cairo', sans-serif;
+            display: none;
+        }
+
+        .item-desc {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .order-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #222;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .order-controls label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .counter-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .counter-btn {
+            background: var(--primary-gold);
+            color: #000;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .counter-btn:hover {
+            background: var(--light-gold);
+            transform: scale(1.05);
+        }
+
+        .qty-display {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+            min-width: 25px;
+            text-align: center;
+        }
+
+        .whatsapp-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border-color);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .cart-summary {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .whatsapp-btn {
+            background-color: var(--whatsapp-green);
+            color: #fff;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 10px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+        }
+
+        .whatsapp-btn:hover {
+            background-color: #20ba5a;
+            transform: scale(1.02);
+        }
+
+        .admin-controls {
+            display: none;
+            background: #1e1e1e;
+            border: 2px solid var(--primary-gold);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .admin-controls button {
+            background: var(--primary-gold);
+            color: #000;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            margin: 0 5px;
+        }
+
+        .admin-controls button.cancel {
+            background: #444;
+            color: #fff;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 25px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button class="admin-btn" onclick="openAdminPanel()">إدارة القائمة</button>
+        <h1>مطعم الفخامة والذوق الرفيع</h1>
+        <p>اطلب أطباقك المفضلة بضغطة زر ليصلك الطلب مباشرة عبر واتساب</p>
+    </header>
+
+    <div class="menu-container">
+        
+        <div id="adminControlsBar" class="admin-controls">
+            <p style="color: var(--primary-gold); margin-bottom: 10px; font-weight: bold;">وضع تعديل الأسعار السحابي نشط</p>
+            <button onclick="saveChanges()">حفظ وتحديث للجميع</button>
+            <button class="cancel" onclick="exitAdminMode()">إغلاق</button>
+        </div>
+
+        <!-- الأطباق الرئيسية -->
+        <h2 class="category-title">الأطباق الرئيسية</h2>
+        <div class="menu-grid">
+            
+            <div class="menu-item" data-price-num="45">
+                <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80" alt="ستيك لحم مشوي" class="item-image">
+                <div class="item-content">
+                    <div class="item-header">
+                        <span class="item-title">ستيك لحم مشوي</span>
+                        <div class="item-price-container">
+                            <span class="price-text" data-id="item-1">45</span> ر.س
+                            <input type="number" class="price-input" data-id="item-1" value="45">
+                        </div>
+                    </div>
+                    <p class="item-desc">شريحة لحم طرية ومشوية على الفحم، تقدم مع صوص المشروم والبطاطس المهروسة.</p>
+                    <div class="order-controls">
+                        <label>الكمية:</label>
+                        <div class="counter-box">
+                            <button class="counter-btn" onclick="changeQty(this, -1)">-</button>
+                            <span class="qty-display">0</span>
+                            <button class="counter-btn" onclick="changeQty(this, 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-item" data-price-num="38">
+                <img src="https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=600&q=80" alt="دجاج بالكريمة" class="item-image">
+                <div class="item-content">
+                    <div class="item-header">
+                        <span class="item-title">دجاج بالكريمة والأعشاب</span>
+                        <div class="item-price-container">
+                            <span class="price-text" data-id="item-2">38</span> ر.س
+                            <input type="number" class="price-input" data-id="item-2" value="38">
+                        </div>
+                    </div>
+                    <p class="item-desc">صدور دجاج طرية مطبوخة بصوص الكريمة الغنية مع الأعشاب الطازجة.</p>
+                    <div class="order-controls">
+                        <label>الكمية:</label>
+                        <div class="counter-box">
+                            <button class="counter-btn" onclick="changeQty(this, -1)">-</button>
+                            <span class="qty-display">0</span>
+                            <button class="counter-btn" onclick="changeQty(this, 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-item" data-price-num="42">
+                <img src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80" alt="برجر لحم فاخر" class="item-image">
+                <div class="item-content">
+                    <div class="item-header">
+                        <span class="item-title">برجر لحم أنغوس فاخر</span>
+                        <div class="item-price-container">
+                            <span class="price-text" data-id="item-5">42</span> ر.س
+                            <input type="number" class="price-input" data-id="item-5" value="42">
+                        </div>
+                    </div>
+                    <p class="item-desc">لحم أنغوس مشوي، جبن شيدر مدخن، صوص خاص، وخبز بريوش طازج.</p>
+                    <div class="order-controls">
+                        <label>الكمية:</label>
+                        <div class="counter-box">
+                            <button class="counter-btn" onclick="changeQty(this, -1)">-</button>
+                            <span class="qty-display">0</span>
+                            <button class="counter-btn" onclick="changeQty(this, 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- المشروبات -->
+        <h2 class="category-title">المشروبات المنعشة</h2>
+        <div class="menu-grid">
+            
+            <div class="menu-item" data-price-num="18">
+                <img src="https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=600&q=80" alt="قهوة لاتيه" class="item-image">
+                <div class="item-content">
+                    <div class="item-header">
+                        <span class="item-title">قهوة لاتيه فاخرة</span>
+                        <div class="item-price-container">
+                            <span class="price-text" data-id="item-3">18</span> ر.س
+                            <input type="number" class="price-input" data-id="item-3" value="18">
+                        </div>
+                    </div>
+                    <p class="item-desc">إسبريسو غني مع حليب مبخر ورغوة ناعمة.</p>
+                    <div class="order-controls">
+                        <label>الكمية:</label>
+                        <div class="counter-box">
+                            <button class="counter-btn" onclick="changeQty(this, -1)">-</button>
+                            <span class="qty-display">0</span>
+                            <button class="counter-btn" onclick="changeQty(this, 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-item" data-price-num="22">
+                <img src="https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&q=80" alt="موهيتو فراولة" class="item-image">
+                <div class="item-content">
+                    <div class="item-header">
+                        <span class="item-title">موهيتو فراولة</span>
+                        <div class="item-price-container">
+                            <span class="price-text" data-id="item-4">22</span> ر.س
+                            <input type="number" class="price-input" data-id="item-4" value="22">
+                        </div>
+                    </div>
+                    <p class="item-desc">مشروب منعش بنكهة الفراولة الطازجة والنعناع والصودا.</p>
+                    <div class="order-controls">
+                        <label>الكمية:</label>
+                        <div class="counter-box">
+                            <button class="counter-btn" onclick="changeQty(this, -1)">-</button>
+                            <span class="qty-display">0</span>
+                            <button class="counter-btn" onclick="changeQty(this, 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- شريط إرسال الطلب العائم -->
+    <div class="whatsapp-bar">
+        <div class="cart-summary">
+            المجموع الإجمالي: <span id="totalAmount" style="color: var(--primary-gold);">0</span> ر.س
+        </div>
+        <button class="whatsapp-btn" onclick="sendToWhatsApp()">
+            إرسال الطلب عبر واتساب 
+            <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.198-.198.347-.764.967-.937 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+        </button>
+    </div>
+
+    <footer>
+        <p>جميع الحقوق محفوظة &copy; 2026 - مطعم الفخامة</p>
+    </footer>
+
+    <script>
+        // إعدادات الـ Firebase الخاصة بمشروعك المستخرجة من صورتك
+        const firebaseConfig = {
+            apiKey: "AIzaSyB2tPNjC59FNsm9A5RPqw92MNkkggfaPeM",
+            authDomain: "restarunt-app-459bf.firebaseapp.com",
+            projectId: "restarunt-app-459bf",
+            storageBucket: "restarunt-app-459bf.appspot.com",
+            messagingSenderId: "885973097502",
+            appId: "1:885973097502:web:3a923a5db84d283b47620f"
+        };
+
+        // تهيئة فايربيس
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const ADMIN_PASSWORD = "samir22";
+        const RESTAURANT_PHONE = "963981448957"; // استبدله برقم واتساب المطعم
+
+        // جلب الأسعار تلقائياً من قاعدة البيانات السحابية عند فتح الصفحة
+        window.onload = function() {
+            loadPricesFromCloud();
+        }
+
+        function loadPricesFromCloud() {
+            db.collection("menuPrices").get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    let id = doc.id;
+                    let price = doc.data().price;
+
+                    let textSpan = document.querySelector(`.price-text[data-id="${id}"]`);
+                    let inputField = document.querySelector(`.price-input[data-id="${id}"]`);
+                    let menuItem = textSpan ? textSpan.closest('.menu-item') : null;
+                    
+                    if (textSpan && inputField && menuItem) {
+                        textSpan.innerText = price;
+                        inputField.value = price;
+                        menuItem.setAttribute('data-price-num', price);
+                    }
+                });
+                updateTotal();
+            });
+        }
+
+        function changeQty(button, delta) {
+            let counterBox = button.parentElement;
+            let qtyDisplay = counterBox.querySelector('.qty-display');
+            let currentQty = parseInt(qtyDisplay.innerText) || 0;
+            
+            let newQty = currentQty + delta;
+            if (newQty < 0) newQty = 0;
+            
+            qtyDisplay.innerText = newQty;
+            updateTotal();
+        }
+
+        function updateTotal() {
+            let total = 0;
+            const items = document.querySelectorAll('.menu-item');
+            
+            items.forEach(item => {
+                let price = parseFloat(item.getAttribute('data-price-num')) || 0;
+                let qty = parseInt(item.querySelector('.qty-display').innerText) || 0;
+                total += price * qty;
+            });
+
+            document.getElementById('totalAmount').innerText = total;
+        }
+
+        function sendToWhatsApp() {
+            let orderDetails = "مرحباً، أود طلب الأطباق التالية:%0A%0A";
+            let total = 0;
+            let hasItems = false;
+
+            const items = document.querySelectorAll('.menu-item');
+            items.forEach(item => {
+                let title = item.querySelector('.item-title').innerText;
+                let price = parseFloat(item.getAttribute('data-price-num')) || 0;
+                let qty = parseInt(item.querySelector('.qty-display').innerText) || 0;
+
+                if (qty > 0) {
+                    hasItems = true;
+                    let itemTotal = price * qty;
+                    total += itemTotal;
+                    orderDetails += `- ${title} (الكمية: ${qty}) = ${itemTotal} ر.س%0A`;
+                }
+            });
+
+            if (!hasItems) {
+                alert("الرجاء اختيار طبق واحد على الأقل لتتمكن من إرسال الطلب!");
+                return;
+            }
+
+            orderDetails += `%0A*المجموع الإجمالي: ${total} ر.س*`;
+            orderDetails += `%0A%0Aمع الشكر!`;
+
+            let whatsappUrl = `https://wa.me/${RESTAURANT_PHONE}?text=${orderDetails}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        function openAdminPanel() {
+            let password = prompt("الرجاء إدخال كلمة سر لوحة التحكم:");
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('adminControlsBar').style.display = 'block';
+                document.querySelectorAll('.price-text').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.price-input').forEach(el => el.style.display = 'inline-block');
+            } else if (password !== null) {
+                alert("كلمة المرور غير صحيحة!");
+            }
+        }
+
+        // حفظ التعديلات وإرسالها فوراً إلى السحابة (Firebase)
+        function saveChanges() {
+            let promises = [];
+
+            document.querySelectorAll('.price-input').forEach(input => {
+                let id = input.getAttribute('data-id');
+                let newVal = input.value;
+                
+                // تخزين السعر في مجموعة اسمها menuPrices داخل قاعدة بيانات Firestore
+                let promise = db.collection("menuPrices").doc(id).set({
+                    price: newVal
+                });
+                promises.push(promise);
+            });
+
+            Promise.all(promises).then(() => {
+                alert("تم تحديث وحفظ الأسعار سحابياً بنجاح للجميع!");
+                loadPricesFromCloud();
+                exitAdminMode();
+            }).catch((error) => {
+                alert("حدث خطأ أثناء الحفظ: " + error);
+            });
+        }
+
+        function exitAdminMode() {
+            document.getElementById('adminControlsBar').style.display = 'none';
+            document.querySelectorAll('.price-text').forEach(el => el.style.display = 'inline');
+            document.querySelectorAll('.price-input').forEach(el => el.style.display = 'none');
+        }
+    </script>
+
+</body>
+</html>
